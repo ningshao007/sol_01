@@ -9,12 +9,18 @@ error CarbonTrader_TransferFailed();
 
 contract CarbonTrader {
     struct trade {
+        /**
+         * @notice 卖家信息，每个交易只有一个固定值
+         */
         address seller;
         uint256 sellAmount;
         uint256 startTimestamp;
         uint256 endTimestamp;
         uint256 minimumBidAmount;
         uint256 initPriceOfunit;
+        /**
+         * @notice 买家信息，可以有多个买家
+         */
         mapping(address => uint256) deposits;
         mapping(address => string) bidInfos;
         mapping(address => string) bidSecrets;
@@ -30,6 +36,7 @@ contract CarbonTrader {
 
     constructor(address usdtTokenAddress) {
         i_owner = msg.sender;
+        // 接受任何代币地址作为参数，只要这个代币实现了ERC20接口，合约并不关心具体是什么代币，只要符合ERC20标准功能
         i_usdtToken = IERC20(usdtTokenAddress);
     }
 
@@ -81,6 +88,7 @@ contract CarbonTrader {
     }
 
     function startTrade(
+        // string是复杂数据类型，需要明确指定数据位置（memory,storage,calldata)
         string memory tradeId,
         uint256 amount,
         uint256 startTimestamp,
@@ -95,6 +103,7 @@ contract CarbonTrader {
             initPriceOfUnit <= 0 ||
             miniumimBidAmount > amount
         ) revert CarbonTrader_ParamError();
+        // 这里只能用storage关键字,指向区块链存储中的数据引用，而不是数据的副本
         trade storage newTrade = s_trade[tradeId];
         newTrade.seller = msg.sender;
         newTrade.sellAmount = amount;
@@ -148,7 +157,7 @@ contract CarbonTrader {
         curTrade.bidInfos[msg.sender] = info;
     }
 
-    function refundDeposit(stirng memory tradeID) public {
+    function refundDeposit(string memory tradeID) public {
         trade storage curTrade = s_trade[tradeID];
         uint256 depositAmount = curTrade.deposits[msg.sender];
         curTrade.deposits[msg.sender] = 0;
@@ -180,6 +189,7 @@ contract CarbonTrader {
     ) public {
         // 获取保证金
         uint256 depositAmount = s_trade[tradeID].deposits[msg.sender];
+        // 清空买家的保证金
         s_trade[tradeID].deposits[msg.sender] = 0;
         // 把保证金和新补的这些钱给卖家
         address seller = s_trade[tradeID].seller;
